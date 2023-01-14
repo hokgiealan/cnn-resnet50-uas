@@ -1,0 +1,126 @@
+from google.colab import drive
+drive.mount('/content/gdrive')
+
+import numpy as np
+import pandas as pd
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+# Models 
+import tensorflow as tf
+from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import Flatten, Dense, Dropout, Conv2D, MaxPooling2D
+
+import os
+
+folder_path = '/content/gdrive/My Drive/Dataset'
+for dirname, _, filenames in os.walk(folder_path):
+    print(dirname)
+    
+rint('Total Jambu Biji images:', len(os.listdir(folder_path + '/Jambu Biji')))
+print('Total Belimbing Wuluh images:', len(os.listdir(folder_path + '/Belimbing Wuluh')))
+print('Total Nangka images:', len(os.listdir(folder_path + '/Nangka')))
+print('Total Kemangi images:', len(os.listdir(folder_path + '/Kemangi')))
+print('Total Lidah Buaya images:', len(os.listdir(folder_path + '/Lidah Buaya')))
+print('Total Pepaya images:', len(os.listdir(folder_path + '/Pepaya')))
+print('Total Pandan images:', len(os.listdir(folder_path + '/Pandan')))
+print('Total Sirih images:', len(os.listdir(folder_path + '/Sirih')))
+print('Total Seledri images:', len(os.listdir(folder_path + '/Seledri')))
+print('Total Jeruk Nipis images:', len(os.listdir(folder_path + '/Jeruk Nipis')))
+
+from tensorflow.keras.utils import load_img
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+%matplotlib inline
+
+fig = plt.figure(figsize=(10, 7))
+  
+# setting values to rows and column variables
+rows = 2
+columns = 2
+
+# reading images
+Image1 = load_img(folder_path + '/Jambu Biji/Jambu Biji002.jpg')
+Image2 = load_img(folder_path + '/Nangka/Nangka004.jpg')
+Image3 = load_img(folder_path + '/Pandan/Pandan006.jpg')
+Image4 = load_img(folder_path + '/Pepaya/Pepaya020.jpg')
+
+fig.add_subplot(rows, columns, 1)
+plt.imshow(Image1)
+plt.title("First")
+
+fig.add_subplot(rows, columns, 2)
+plt.imshow(Image2)
+plt.title("Second")
+
+fig.add_subplot(rows, columns, 3)
+plt.imshow(Image3)
+plt.title("Third")
+
+fig.add_subplot(rows, columns, 4)
+plt.imshow(Image4)
+plt.title("Fourth")
+
+train_datagen = ImageDataGenerator(
+                fill_mode = 'nearest',
+                validation_split=0.2
+)
+
+train_generator=train_datagen.flow_from_directory(
+    folder_path,
+    target_size=(108,108),
+    color_mode='rgb',
+    class_mode='categorical',
+    subset='training',
+)
+validation_generator=train_datagen.flow_from_directory(
+    folder_path,
+    target_size=(108,108),
+    color_mode='rgb',
+    class_mode='categorical',
+    subset='validation',
+)
+
+from keras.applications import ResNet50
+model = tf.keras.models.Sequential([
+    ResNet50(input_shape=(108,108,3), include_top=False),
+])
+for layer in model.layers:
+  layer.trainable = False
+
+model.add(Conv2D(64, (3,3), activation='relu'))
+model.add(MaxPooling2D(2,2))
+model.add(Flatten())
+model.add(Dense(64, activation='relu'))
+model.add(Dropout(0.4))
+model.add(Dense(10, activation='softmax'))
+
+model.summary()
+
+model.compile(optimizer='Adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+history = model.fit(train_generator,
+                    validation_data=validation_generator,
+                    epochs=5,
+                    verbose=1,
+                    )
+
+import matplotlib.pyplot as plt
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('Model accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Validation'], loc='lower right')
+plt.show()
+
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Model Loss')
+plt.ylabel('loss')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Validation'], loc='lower right')
+plt.show()
+
+model.save('/content/gdrive/My Drive/Dataset/savemodel.h5')
